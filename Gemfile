@@ -1,0 +1,6 @@
+source 'https://rubygems.org'
+ruby '2.2.5'
+gem 'pry'
+gem 'rest-client'
+gem 'json'
+gem 'rspec'
