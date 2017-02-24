@@ -1,4 +1,4 @@
-require 'rest-client' #gem install rest-client, gem install byebug, #use ruby version > 1.9.3
+require 'rest-client'
 require 'pry'
 require 'json'
 require 'yaml'
@@ -10,6 +10,7 @@ $cnf = YAML::load_file(File.join(__dir__, 'secrets.yml'))
 module Mailgun
 	def self.send_mail(mail_to)
     begin
+      # Send mail
       RestClient.post $cnf['mailgun']['apikey'] + $cnf['mailgun']['post_domain'],
         :from => $cnf['mailgun']['from'],
         :to => mail_to,
@@ -23,6 +24,7 @@ module Mailgun
   
   end
 
+# just sample extra method - to add bounce email to suppression list, Even We can add manually in Mailgun site
   def add_bounce
     begin
       RestClient.post $cnf['mailgun']['apikey'] + $cnf['mailgun']['bounnces'],
@@ -41,7 +43,7 @@ module Mailgun
         {'link' => $cnf['mailgun']['apikey'] + $cnf['mailgun']['unsubscribes'] + "/#{email_id}"},
         {'link' => $cnf['mailgun']['apikey'] + $cnf['mailgun']['complaints'] + "/#{email_id}"}
       ]
-
+      # create thread to send a multiple request and get the suppression list for the types [bounnces, unsubscribes, complaints]
       urls.each do |u|
         Thread.new do
           RestClient.get(u['link']){|response, request, result| suppression_email_list << email_id  if response.code == 200}
@@ -56,13 +58,14 @@ module Mailgun
       suppression_email_list
   end
 
-  def self.previously_sent_emails  #looks like this is not correct, should check
+  def self.previously_sent_emails(recipient)
   	previously_sent_emails_list = []
     begin
-      response =  RestClient.get $cnf['mailgun']['apikey'] + $cnf['mailgun']['get_domain'],
+      # Get the mails which is delivered to recipient
+      response =  RestClient.get $cnf['mailgun']['apikey'] + $cnf['mailgun']['get_events'],
         :params => {
           :limit       =>  25,
-          :recipient => 'mangala <mangala176@gmail.com>'
+          :recipient => recipient
         }
 
       data = JSON.parse(response.body)
