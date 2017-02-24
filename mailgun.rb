@@ -35,39 +35,25 @@ module Mailgun
 
   def self.detect_suppression_email(email_id)
     begin
-    suppression_email_list = []
-    urls = [
-    {'link' => $cnf['mailgun']['apikey'] + $cnf['mailgun']['bounnces'] + "/#{email_id}"},
-    {'link' => $cnf['mailgun']['apikey'] + $cnf['mailgun']['unsubscribes'] + "/#{email_id}"},
-    {'link' => $cnf['mailgun']['apikey'] + $cnf['mailgun']['complaints'] + "/#{email_id}"}
-  ]
+      suppression_email_list = []
+        urls = [
+        {'link' => $cnf['mailgun']['apikey'] + $cnf['mailgun']['bounnces'] + "/#{email_id}"},
+        {'link' => $cnf['mailgun']['apikey'] + $cnf['mailgun']['unsubscribes'] + "/#{email_id}"},
+        {'link' => $cnf['mailgun']['apikey'] + $cnf['mailgun']['complaints'] + "/#{email_id}"}
+      ]
 
-    urls.each do |u|
-      Thread.new do
-        u['content'] = RestClient.get(u['link']){|response, request, result| response }
-        puts "Successfully requested #{u['link']}"
-        data = JSON.parse(response.body)
-        (suppression_email_list << email_id) if response.code == 200
-        if urls.all? {|u| u.has_key?("content") }
-          puts "Fetched all urls!"
-          exit
-        end
+      urls.each do |u|
+        Thread.new do
+          RestClient.get(u['link']){|response, request, result| suppression_email_list << email_id  if response.code == 200}
+            puts "Successfully requested #{u['link']}"
+          end
+        sleep 3
       end
-      sleep 3
-    end
-     # Check email address is listed in a suppressions list
-      # if suppression_email_list.present?
-      #   puts "#{email_id} address found in suppression list"
-        # return true
-      # else
-      #   puts "#{email_id} Address not found in suppression list"
-        # return false
-      # end
-    rescue Exception => e
-      puts "Exception raised send_mail:" + e.class.to_s
-      puts e.message
-    end
-    suppression_email_list
+      rescue Exception => e
+        puts "Exception raised send_mail:" + e.class.to_s
+        puts e.message
+      end
+      suppression_email_list
   end
 
   def self.previously_sent_emails  #looks like this is not correct, should check
